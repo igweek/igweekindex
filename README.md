@@ -1,6 +1,7 @@
 # igweekindex
 My personal homepage
 # 项目结构
+```
 ├── index.html          
 └── assets/
     ├── css/
@@ -18,3 +19,4 @@ My personal homepage
             ├── remixicon.ttf
             ├── remixicon.woff2
             └── ... (其他图标字体文件)
+```
