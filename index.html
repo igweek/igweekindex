@@ -66,6 +66,8 @@
       background: var(--background);
       font-family: ui-monospace, "SFMono-Regular", Consolas, "Liberation Mono", monospace;
       transition: background 0.5s, color 0.5s;
+      -webkit-user-select: none;
+      user-select: none;
       cursor: default;
     }
 
@@ -98,6 +100,7 @@
       border-radius: 50%;
       object-fit: cover;
       transform: scale(0.95);
+      -webkit-user-drag: none;
     }
 
     .name {
