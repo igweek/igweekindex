@@ -17,8 +17,20 @@
     (() => {
       const hour = new Date().getHours();
       const isDaytime = hour >= 7 && hour < 19;
-      document.documentElement.dataset.theme = isDaytime ? "light" : "dark";
-      document.querySelector('meta[name="theme-color"]').content = isDaytime ? "#f0f0f0" : "#0d0d0d";
+      let savedTheme = null;
+
+      try {
+        savedTheme = localStorage.getItem("gweek-theme");
+      } catch {
+        // 隐私模式或受限环境下继续使用时间主题。
+      }
+
+      const theme = savedTheme === "light" || savedTheme === "dark"
+        ? savedTheme
+        : isDaytime ? "light" : "dark";
+
+      document.documentElement.dataset.theme = theme;
+      document.querySelector('meta[name="theme-color"]').content = theme === "light" ? "#f0f0f0" : "#0d0d0d";
     })();
   </script>
 
@@ -36,6 +48,8 @@
       --foreground: #fff;
       --background: radial-gradient(circle at center, #1a1a1a 0%, #0d0d0d 60%, #000 100%);
       --grid-color: rgba(80, 80, 80, 0.25);
+      --toggle-background: rgba(255, 255, 255, 0.07);
+      --toggle-hover: rgba(255, 255, 255, 0.14);
     }
 
     :root[data-theme="light"] {
@@ -43,6 +57,8 @@
       --foreground: #111;
       --background: radial-gradient(circle at center, #fff 0%, #f0f0f0 60%, #e0e0e0 100%);
       --grid-color: rgba(150, 150, 150, 0.25);
+      --toggle-background: rgba(0, 0, 0, 0.05);
+      --toggle-hover: rgba(0, 0, 0, 0.1);
     }
 
     :root[data-theme="dark"] {
@@ -82,6 +98,55 @@
       mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.6) 40%, transparent 100%);
       -webkit-mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.6) 40%, transparent 100%);
       pointer-events: none;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      z-index: 2;
+      top: max(18px, env(safe-area-inset-top));
+      right: max(18px, env(safe-area-inset-right));
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      display: grid;
+      place-items: center;
+      border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+      border-radius: 50%;
+      color: inherit;
+      background: var(--toggle-background);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .theme-toggle:hover {
+      background: var(--toggle-hover);
+      transform: translateY(-2px);
+    }
+
+    .theme-toggle:active {
+      transform: translateY(0) scale(0.95);
+    }
+
+    .theme-toggle:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 3px;
+    }
+
+    .theme-toggle svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .theme-toggle .icon-moon,
+    :root[data-theme="light"] .theme-toggle .icon-sun {
+      display: none;
+    }
+
+    :root[data-theme="light"] .theme-toggle .icon-moon {
+      display: block;
     }
 
     .profile {
@@ -191,6 +256,15 @@
   </style>
 </head>
 <body>
+  <button class="theme-toggle" type="button" aria-label="切换到亮色模式" title="切换到亮色模式">
+    <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 18a6 6 0 1 1 0-12 6 6 0 0 1 0 12Zm0-2a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm1-14v2h-2V2h2Zm0 18v2h-2v-2h2ZM4.22 5.64 2.81 4.22l1.41-1.41 1.42 1.41-1.42 1.42Zm14.14 14.14-1.42-1.42 1.42-1.41 1.41 1.41-1.41 1.42ZM4 11v2H2v-2h2Zm18 0v2h-2v-2h2ZM5.64 18.36l-1.42 1.42-1.41-1.42 1.41-1.41 1.42 1.41ZM19.78 4.22l-1.42 1.42-1.41-1.42 1.41-1.41 1.42 1.41Z"/>
+    </svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M10.07 2.82A8.5 8.5 0 1 0 21.18 13.93 9 9 0 1 1 10.07 2.82ZM8.5 5.55A7 7 0 1 0 18.45 15.5 8.5 8.5 0 0 1 8.5 5.55Z"/>
+    </svg>
+  </button>
+
   <main class="profile">
     <img
       src="assets/images/avatar-240.jpg"
@@ -231,5 +305,36 @@
       </a>
     </nav>
   </main>
+
+  <script>
+    (() => {
+      const toggle = document.querySelector(".theme-toggle");
+      const themeColor = document.querySelector('meta[name="theme-color"]');
+
+      const updateToggle = () => {
+        const isLight = document.documentElement.dataset.theme === "light";
+        const label = isLight ? "切换到暗色模式" : "切换到亮色模式";
+        toggle.setAttribute("aria-label", label);
+        toggle.setAttribute("title", label);
+        toggle.setAttribute("aria-pressed", String(isLight));
+        themeColor.content = isLight ? "#f0f0f0" : "#0d0d0d";
+      };
+
+      toggle.addEventListener("click", () => {
+        const nextTheme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+        document.documentElement.dataset.theme = nextTheme;
+
+        try {
+          localStorage.setItem("gweek-theme", nextTheme);
+        } catch {
+          // 主题切换仍然生效，只是不保存。
+        }
+
+        updateToggle();
+      });
+
+      updateToggle();
+    })();
+  </script>
 </body>
 </html>
